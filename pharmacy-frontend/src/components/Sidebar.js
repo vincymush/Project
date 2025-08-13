@@ -1,114 +1,112 @@
 import React from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 
+// Role-based dashboard titles
+const roleTitles = {
+  admin: "Admin Dashboard",
+  pharmacist: "Pharmacy Dashboard",
+  supplier: "Supplier Dashboard",
+  cashier: "Cashier Dashboard",
+  customer: "Customer Dashboard",
+};
+
+// Role-based menu definitions
+const roleMenus = {
+  admin: [
+    { label: "Dashboard", to: "/admin" },
+    { label: "Medicines", to: "/admin/medicines" },
+    { label: "Add Supplier", to: "/admin/add-supplier" },
+    { label: "Suppliers", to: "/admin/suppliers" },
+    { label: "Reports", to: "/admin/report" },
+    { label: "User Management", to: "/admin/users" },
+    { label: "Orders", to: "/admin/orders" },
+    { label: "Profile", to: "/admin/profile" },
+  ],
+  pharmacist: [
+    { label: "Add Medicine", to: "/pharmacist/add-medicine" }, // ✅ Added here
+    { label: "Prescriptions", to: "/pharmacist/prescriptions" },
+    { label: "Expired Medicines", to: "/pharmacist/expired-medicines" },
+    { label: "Reports", to: "/pharmacist/reports" },
+    { label: "Profile", to: "/pharmacist/profile" },
+  ],
+  supplier: [
+    { label: "Dashboard", to: "/supplier" },
+    { label: "Supply Orders", to: "/supplier/orders" },
+    { label: "Profile", to: "/supplier/profile" },
+  ],
+  cashier: [
+    { label: "Sales Report", to: "/cashier/sales-report" },
+    { label: "Billing", to: "/cashier/billing" },
+    { label: "Profile", to: "/cashier/profile" },
+  ],
+  customer: [
+    { label: "Dashboard", to: "/customer" },
+    { label: "Shop", to: "/customer/shop" },
+    { label: "Orders", to: "/customer/orders" },
+    { label: "Profile", to: "/customer/profile" },
+  ],
+};
+
 export default function Sidebar({ onLogout, role, onNavigate }) {
   const navigate = useNavigate();
-
-  const appTitle = {
-    admin: "Admin Dashboard",
-    pharmacist: "Pharmacy Dashboard",
-    supplier: "Supplier Dashboard",
-    cashier: "Cashier Dashboard",
-    customer: "Customer Dashboard",
-  }[role] || "PharmacyApp";
-
-  // Full menu per role:
-  const roleMenus = {
-    admin: [
-      { label: "Dashboard", to: "/admin", key: "dashboard" },
-      { label: "Medicines", to: "/admin/medicines", key: "medicines" },
-      { label: "Add Supplier", to: "/admin/add-supplier", key: "addSupplier" },
-      { label: "Suppliers", to: "/admin/suppliers", key: "suppliers" },
-      { label: "Reports", to: "/admin/report", key: "reports" },
-      { label: "User Management", to: "/admin/users", key: "users" },
-      { label: "Orders", to: "/admin/orders", key: "orders" },
-      { label: "Profile", to: "/admin/profile", key: "profile" },
-    ],
-    pharmacist: [
-      { label: "Prescriptions", to: "/pharmacist/prescriptions", key: "prescriptions" },
-      { label: "Expired Medicines", to: "/pharmacist/expired-medicines", key: "expiredMedicines" },
-      { label: "Reports", to: "/pharmacist/reports", key: "reports" },
-      { label: "Profile", to: "/pharmacist/profile", key: "profile" },
-    ],
-    supplier: [
-      { label: "Dashboard", to: "/supplier", key: "dashboard" },
-      { label: "Supply Orders", to: "/supplier/orders", key: "orders" },
-      { label: "Profile", to: "/supplier/profile", key: "profile" },
-    ],
-    cashier: [
-      { label: "Sales Report", to: "/cashier/sales-report", key: "salesReport" },
-      { label: "Billing", to: "/cashier/billing", key: "billing" },
-      { label: "Profile", to: "/cashier/profile", key: "profile" },
-    ],
-    customer: [
-      { label: "Dashboard", to: "/customer", key: "dashboard" },
-      { label: "Shop", to: "/customer/shop", key: "shop" },
-      { label: "Orders", to: "/customer/orders", key: "orders" },
-      { label: "Profile", to: "/customer/profile", key: "profile" },
-    ],
-  };
-
   const sections = roleMenus[role] || [];
+  const appTitle = roleTitles[role] || "PharmacyApp";
 
-  const activeClass =
-    "bg-gray-700 text-white rounded px-3 py-2 block font-semibold";
-  const inactiveClass =
-    "text-gray-300 hover:bg-gray-700 hover:text-white rounded px-3 py-2 block";
+  const linkBase =
+    "rounded px-3 py-2 block transition-colors duration-150 font-semibold";
+  const activeClass = `bg-gray-700 text-white ${linkBase}`;
+  const inactiveClass = `text-gray-300 hover:bg-gray-700 hover:text-white ${linkBase}`;
 
   const handleLogout = () => {
-    if (typeof onLogout === "function") {
-      onLogout();
-    }
+    onLogout?.();
     navigate("/login");
   };
 
   return (
-    <div className="w-56 bg-gray-800 text-white min-h-screen p-6 flex flex-col">
-      <h2 className="text-2xl font-bold mb-10 select-none cursor-default">
-        {appTitle}
-      </h2>
+    <aside className="w-56 bg-gray-800 text-white min-h-screen p-6 flex flex-col">
+      {/* App title */}
+      <h2 className="text-2xl font-bold mb-10 select-none">{appTitle}</h2>
 
+      {/* Navigation menu */}
       <nav className="flex-grow overflow-y-auto">
         {sections.map(({ label, to }) => (
-          <div key={label} className="mb-2">
-            <NavLink
-              to={to}
-              className={({ isActive }) => (isActive ? activeClass : inactiveClass)}
-              end
-              onClick={() => onNavigate && onNavigate(label)}
-            >
-              {label}
-            </NavLink>
-          </div>
+          <NavLink
+            key={label}
+            to={to}
+            className={({ isActive }) =>
+              isActive ? activeClass : inactiveClass
+            }
+            end
+            onClick={() => onNavigate?.(label)}
+          >
+            {label}
+          </NavLink>
         ))}
       </nav>
 
-      <div className="mt-6 flex justify-between">
+      {/* Navigation controls */}
+      <div className="mt-6 flex justify-between gap-2">
         <button
           onClick={() => navigate(-1)}
           className="bg-gray-600 hover:bg-gray-700 rounded px-3 py-2 text-sm"
-          type="button"
-          aria-label="Go back"
         >
-          &#8592; Back
+          ← Back
         </button>
         <button
           onClick={() => navigate(1)}
           className="bg-gray-600 hover:bg-gray-700 rounded px-3 py-2 text-sm"
-          type="button"
-          aria-label="Go forward"
         >
-          Forward &#8594;
+          Forward →
         </button>
       </div>
 
+      {/* Logout */}
       <button
         onClick={handleLogout}
         className="mt-6 bg-red-600 hover:bg-red-700 rounded px-4 py-2 font-semibold"
-        type="button"
       >
         Logout
       </button>
-    </div>
+    </aside>
   );
 }

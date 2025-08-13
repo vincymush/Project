@@ -1,15 +1,19 @@
-import React, { useState } from "react";
+import React from "react";
 
 export default function ExpiredMedicines() {
-  const [expiredList, setExpiredList] = useState([
+  const expiredList = [
     { id: 1, name: "Ibuprofen", expiryDate: "2025-07-20" },
     { id: 2, name: "Vitamin C", expiryDate: "2025-06-15" },
-  ]);
+  ];
 
   return (
     <div>
       <h1>Expired Medicines</h1>
-      <table border="1" cellPadding="8" style={{ borderCollapse: "collapse", marginTop: "10px" }}>
+      <table
+        border="1"
+        cellPadding="8"
+        style={{ borderCollapse: "collapse", marginTop: "10px" }}
+      >
         <thead>
           <tr>
             <th>ID</th>

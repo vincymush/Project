@@ -1,10 +1,12 @@
-import React from "react";
+// src/pages/PharmacistDashboard.jsx
+import React, { useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Prescriptions from "./Prescriptions";
 import ExpiredMedicines from "./ExpiredMedicines";
 import Profile from "./Profile";
 import Reports from "./Reports";
+import AddMedicine from "./AddMedicine";
 
 export default function PharmacistDashboard({ onLogout }) {
   return (
@@ -18,8 +20,7 @@ export default function PharmacistDashboard({ onLogout }) {
           <Route path="expired-medicines" element={<ExpiredMedicines />} />
           <Route path="profile" element={<Profile />} />
           <Route path="reports" element={<Reports />} />
-
-          {/* Redirect unknown pharmacist paths to prescriptions */}
+          <Route path="add-medicine" element={<AddMedicine />} /> {/* ✅ AddMedicine route */}
           <Route path="*" element={<Navigate to="prescriptions" replace />} />
         </Routes>
       </main>

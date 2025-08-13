@@ -3,10 +3,12 @@ import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./pages/LoginPage";
 import Login from "./pages/LoginPage";
+import Register from "./pages/RegisterPage";
 import AdminRoutes from "./pages/AdminRoutes";
 import PharmacistRoutes from "./pages/PharmacistRoutes";
 import CashierRoutes from "./pages/CashierRoutes";
 import CustomerRoutes from "./pages/CustomerRoutes";
+import AddMedicine from "./pages/AddMedicine";
 
 function RequireAuth({ children }) {
   const { role } = useAuth();
@@ -37,10 +39,11 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          {/* Public login page */}
+          {/* Public pages */}
           <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
 
-          {/* Redirect from root or unknown routes to role-based dashboard */}
+          {/* Redirect from root or unknown routes */}
           <Route path="/" element={<RedirectBasedOnRole />} />
           <Route path="*" element={<RedirectBasedOnRole />} />
 
@@ -74,6 +77,16 @@ export default function App() {
             element={
               <RequireAuth>
                 <CustomerRoutes />
+              </RequireAuth>
+            }
+          />
+
+          {/* Add Medicine - Available to all authenticated users */}
+          <Route
+            path="/add-medicine"
+            element={
+              <RequireAuth>
+                <AddMedicine />
               </RequireAuth>
             }
           />
