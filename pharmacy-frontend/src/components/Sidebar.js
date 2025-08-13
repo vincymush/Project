@@ -1,5 +1,5 @@
 import React from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
 
 // Role-based dashboard titles
 const roleTitles = {
@@ -7,7 +7,7 @@ const roleTitles = {
   pharmacist: "Pharmacy Dashboard",
   supplier: "Supplier Dashboard",
   cashier: "Cashier Dashboard",
-  customer: "Customer Dashboard",
+  
 };
 
 // Role-based menu definitions
@@ -20,11 +20,10 @@ const roleMenus = {
     { label: "Reports", to: "/admin/report" },
     { label: "User Management", to: "/admin/users" },
     { label: "Orders", to: "/admin/orders" },
-    { label: "Profile", to: "/admin/profile" },
+    { label: "Add pharmacist/Cashier", to: "/admin/profile" },
   ],
   pharmacist: [
-    { label: "Add Medicine", to: "/pharmacist/add-medicine" }, // ✅ Added here
-    { label: "Prescriptions", to: "/pharmacist/prescriptions" },
+    { label: "Add Medicine", to: "/pharmacist/add-medicine" },
     { label: "Expired Medicines", to: "/pharmacist/expired-medicines" },
     { label: "Reports", to: "/pharmacist/reports" },
     { label: "Profile", to: "/pharmacist/profile" },
@@ -39,21 +38,16 @@ const roleMenus = {
     { label: "Billing", to: "/cashier/billing" },
     { label: "Profile", to: "/cashier/profile" },
   ],
-  customer: [
-    { label: "Dashboard", to: "/customer" },
-    { label: "Shop", to: "/customer/shop" },
-    { label: "Orders", to: "/customer/orders" },
-    { label: "Profile", to: "/customer/profile" },
-  ],
+
 };
 
-export default function Sidebar({ onLogout, role, onNavigate }) {
+export default function Sidebar({ role, onLogout, onNavigate }) {
   const navigate = useNavigate();
+  const location = useLocation(); // Detect current path
   const sections = roleMenus[role] || [];
   const appTitle = roleTitles[role] || "PharmacyApp";
 
-  const linkBase =
-    "rounded px-3 py-2 block transition-colors duration-150 font-semibold";
+  const linkBase = "rounded px-3 py-2 block transition-colors duration-150 font-semibold";
   const activeClass = `bg-gray-700 text-white ${linkBase}`;
   const inactiveClass = `text-gray-300 hover:bg-gray-700 hover:text-white ${linkBase}`;
 
@@ -68,33 +62,37 @@ export default function Sidebar({ onLogout, role, onNavigate }) {
       <h2 className="text-2xl font-bold mb-10 select-none">{appTitle}</h2>
 
       {/* Navigation menu */}
-      <nav className="flex-grow overflow-y-auto">
-        {sections.map(({ label, to }) => (
-          <NavLink
-            key={label}
-            to={to}
-            className={({ isActive }) =>
-              isActive ? activeClass : inactiveClass
-            }
-            end
-            onClick={() => onNavigate?.(label)}
-          >
-            {label}
-          </NavLink>
-        ))}
+      <nav className="flex-grow overflow-y-auto space-y-1">
+        {sections.map(({ label, to }) => {
+          // Check if current path starts with the menu path
+          const isActive = location.pathname.startsWith(to);
+
+          return (
+            <div
+              key={label}
+              className={isActive ? activeClass : inactiveClass}
+              onClick={() => {
+                navigate(to);
+                onNavigate?.(label);
+              }}
+            >
+              {label}
+            </div>
+          );
+        })}
       </nav>
 
       {/* Navigation controls */}
       <div className="mt-6 flex justify-between gap-2">
         <button
           onClick={() => navigate(-1)}
-          className="bg-gray-600 hover:bg-gray-700 rounded px-3 py-2 text-sm"
+          className="bg-gray-600 hover:bg-gray-700 rounded px-3 py-2 text-sm transition"
         >
           ← Back
         </button>
         <button
           onClick={() => navigate(1)}
-          className="bg-gray-600 hover:bg-gray-700 rounded px-3 py-2 text-sm"
+          className="bg-gray-600 hover:bg-gray-700 rounded px-3 py-2 text-sm transition"
         >
           Forward →
         </button>
@@ -103,7 +101,7 @@ export default function Sidebar({ onLogout, role, onNavigate }) {
       {/* Logout */}
       <button
         onClick={handleLogout}
-        className="mt-6 bg-red-600 hover:bg-red-700 rounded px-4 py-2 font-semibold"
+        className="mt-6 bg-red-600 hover:bg-red-700 rounded px-4 py-2 font-semibold transition"
       >
         Logout
       </button>

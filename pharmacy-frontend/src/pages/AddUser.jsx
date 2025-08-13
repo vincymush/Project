@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { db } from "../firebase/config";
+import { db, auth } from "../firebase/config";
 import {
   collection,
   setDoc,
@@ -9,13 +9,15 @@ import {
   onSnapshot,
   getDoc
 } from "firebase/firestore";
+import { createUserWithEmailAndPassword } from "firebase/auth";
 
 export default function UserManagement() {
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
-  const [newUserUID, setNewUserUID] = useState("");
   const [newUserName, setNewUserName] = useState("");
   const [newUserRole, setNewUserRole] = useState("");
+  const [newUserEmail, setNewUserEmail] = useState("");
+  const [newUserPassword, setNewUserPassword] = useState("");
 
   // Fetch roles from roles_permissions/config
   useEffect(() => {
@@ -26,14 +28,14 @@ export default function UserManagement() {
         const data = docSnap.data();
         setRoles(data.roles || []);
         if (data.roles.length > 0) {
-          setNewUserRole(data.roles[0]); // Default to first role
+          setNewUserRole(data.roles[0]); // default
         }
       }
     };
     fetchRoles();
   }, []);
 
-  // Live listen to users collection
+  // Listen to users collection
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "users"), (snapshot) => {
       setUsers(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
@@ -41,24 +43,39 @@ export default function UserManagement() {
     return () => unsub();
   }, []);
 
-  // Add a new user using an existing UID
+  // Add a new user
   const addUser = async () => {
-    if (!newUserUID.trim() || !newUserName.trim() || !newUserRole) {
-      return alert("Please enter UID, name, and role");
+    if (!newUserName.trim() || !newUserRole || !newUserEmail.trim() || !newUserPassword.trim()) {
+      return alert("⚠ Please fill in all fields");
     }
     try {
-      await setDoc(doc(db, "users", newUserUID.trim()), {
+      // Create Auth account
+      const userCred = await createUserWithEmailAndPassword(
+        auth,
+        newUserEmail,
+        newUserPassword
+      );
+
+      // Save user record in Firestore
+      await setDoc(doc(db, "users", userCred.user.uid), {
         name: newUserName.trim(),
-        role: newUserRole
+        role: String(newUserRole) // always save as string
       });
-      setNewUserUID("");
+
+      alert("✅ User added successfully!");
+
+      // Reset form
       setNewUserName("");
+      setNewUserEmail("");
+      setNewUserPassword("");
+      setNewUserRole(roles[0] || "");
     } catch (err) {
       console.error("Error adding user:", err);
+      alert("❌ " + err.message);
     }
   };
 
-  // Delete a user
+  // Delete from Firestore only (Auth deletion is separate)
   const deleteUser = async (id) => {
     try {
       await deleteDoc(doc(db, "users", id));
@@ -67,10 +84,9 @@ export default function UserManagement() {
     }
   };
 
-  // Update a user's role
   const updateUserRole = async (id, newRole) => {
     try {
-      await updateDoc(doc(db, "users", id), { role: newRole });
+      await updateDoc(doc(db, "users", id), { role: String(newRole) });
     } catch (err) {
       console.error("Error updating role:", err);
     }
@@ -81,19 +97,26 @@ export default function UserManagement() {
       <h2 className="text-2xl font-bold mb-4">User Management</h2>
 
       {/* Add user form */}
-      <div className="mb-6 flex gap-2">
-        <input
-          type="text"
-          placeholder="Firebase UID"
-          value={newUserUID}
-          onChange={(e) => setNewUserUID(e.target.value)}
-          className="border px-3 py-2 rounded"
-        />
+      <div className="mb-6 flex flex-col gap-2 max-w-md">
         <input
           type="text"
           placeholder="User Name"
           value={newUserName}
           onChange={(e) => setNewUserName(e.target.value)}
+          className="border px-3 py-2 rounded"
+        />
+        <input
+          type="email"
+          placeholder="Email"
+          value={newUserEmail}
+          onChange={(e) => setNewUserEmail(e.target.value)}
+          className="border px-3 py-2 rounded"
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          value={newUserPassword}
+          onChange={(e) => setNewUserPassword(e.target.value)}
           className="border px-3 py-2 rounded"
         />
         <select

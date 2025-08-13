@@ -1,23 +1,10 @@
-import React, { useState, useContext, createContext } from "react";
+// src/pages/LoginPage.jsx
+import React, { useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { getDoc, doc } from "firebase/firestore";
 import { auth, db } from "../firebase/config";
+import { getDoc, doc } from "firebase/firestore";
+import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-
-// Create authentication context
-const AuthContext = createContext();
-export const useAuth = () => useContext(AuthContext);
-
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null); // store full user data
-  const [role, setRole] = useState(null);
-
-  return (
-    <AuthContext.Provider value={{ user, setUser, role, setRole }}>
-      {children}
-    </AuthContext.Provider>
-  );
-}
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -28,31 +15,29 @@ export default function LoginPage() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    try {
-      setLoading(true);
+    setLoading(true);
 
-      // Sign in with Firebase Auth
+    try {
       const userCred = await signInWithEmailAndPassword(auth, email, password);
 
-      // Get user's role from Firestore
       const userDoc = await getDoc(doc(db, "users", userCred.user.uid));
+      if (!userDoc.exists()) {
+        alert("User record not found in Firestore.");
+        setLoading(false);
+        return;
+      }
 
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        setUser(userCred.user);
-        setRole(userData.role);
+      const { role } = userDoc.data();
+      setUser(userCred.user);
+      setRole(role);
 
-        // Navigate to dashboard based on role
-        if (userData.role) {
-          navigate(`/${userData.role}`);
-        } else {
-          alert("No role assigned to this account. Please contact support.");
-        }
+      if (role) {
+        navigate(`/${role}`);
       } else {
-        alert("User data not found in database.");
+        alert("No role assigned to this account.");
       }
     } catch (error) {
-      console.error("Login Error:", error);
+      console.error("Login error:", error);
       if (error.code === "auth/user-not-found") {
         alert("No account found with this email.");
       } else if (error.code === "auth/wrong-password") {
@@ -68,26 +53,24 @@ export default function LoginPage() {
   return (
     <div style={styles.container}>
       <div style={styles.card}>
-        <h2 style={styles.title}>Login</h2>
-        <form onSubmit={handleLogin} style={styles.form}>
+        <h2 style={styles.title}>🔐 Login</h2>
+        <form onSubmit={handleLogin}>
           <input
             type="email"
-            placeholder="Email"
-            style={styles.input}
+            placeholder="📧 Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            style={styles.input}
           />
-
           <input
             type="password"
-            placeholder="Password"
-            style={styles.input}
+            placeholder="🔑 Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            style={styles.input}
           />
-
           <button type="submit" disabled={loading} style={styles.button}>
             {loading ? "Logging in..." : "Login"}
           </button>
@@ -103,42 +86,43 @@ const styles = {
     justifyContent: "center",
     alignItems: "center",
     height: "100vh",
-    background: "linear-gradient(to right, #2c3e50, #3498db)",
+    background: "linear-gradient(135deg, #6a11cb 0%, #2575fc 100%)",
+    fontFamily: "'Segoe UI', sans-serif",
   },
   card: {
-    backgroundColor: "#fff",
+    background: "rgba(255, 255, 255, 0.9)",
     padding: "30px",
-    borderRadius: "10px",
+    borderRadius: "15px",
+    boxShadow: "0 8px 25px rgba(0, 0, 0, 0.2)",
     width: "100%",
     maxWidth: "400px",
-    boxShadow: "0 4px 15px rgba(0,0,0,0.2)",
+    backdropFilter: "blur(8px)",
   },
   title: {
     textAlign: "center",
     marginBottom: "20px",
     color: "#333",
   },
-  form: {
-    display: "flex",
-    flexDirection: "column",
-  },
   input: {
+    width: "100%",
     padding: "12px",
     marginBottom: "15px",
     border: "1px solid #ccc",
-    borderRadius: "5px",
-    fontSize: "14px",
+    borderRadius: "8px",
     outline: "none",
+    fontSize: "14px",
+    transition: "0.3s",
   },
   button: {
+    width: "100%",
     padding: "12px",
-    backgroundColor: "#3498db",
+    background: "linear-gradient(90deg, #6a11cb, #2575fc)",
     color: "#fff",
-    fontSize: "16px",
     fontWeight: "bold",
+    fontSize: "16px",
     border: "none",
-    borderRadius: "5px",
+    borderRadius: "8px",
     cursor: "pointer",
-    transition: "background 0.3s",
+    transition: "0.3s",
   },
 };

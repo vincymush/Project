@@ -1,25 +1,30 @@
 // src/App.jsx
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "./pages/LoginPage";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 import Login from "./pages/LoginPage";
 import Register from "./pages/RegisterPage";
 import AdminRoutes from "./pages/AdminRoutes";
 import PharmacistRoutes from "./pages/PharmacistRoutes";
-import CashierRoutes from "./pages/CashierRoutes";
-import CustomerRoutes from "./pages/CustomerRoutes";
-import AddMedicine from "./pages/AddMedicine";
+import CashierRoutes from "./pages/CashierRoutes"; // ✅ create if not exists
+import { usePermissions } from "./hooks/usePermissions";
+import AccessDenied from "./pages/AccessDenied";
 
-function RequireAuth({ children }) {
-  const { role } = useAuth();
+function RequireAuth({ children, allowedRoles }) {
+  const { user, role, loading: authLoading } = useAuth();
+  const { loading: permsLoading } = usePermissions(user?.uid);
+
+  if (authLoading || permsLoading) return <div>Loading...</div>;
   if (!role) return <Navigate to="/login" replace />;
+  if (allowedRoles && !allowedRoles.includes(role)) {
+    return <Navigate to="/access-denied" replace />;
+  }
+
   return children;
 }
 
 function RedirectBasedOnRole() {
   const { role } = useAuth();
-  if (!role) return <Navigate to="/login" replace />;
-
   switch (role) {
     case "admin":
       return <Navigate to="/admin" replace />;
@@ -27,8 +32,6 @@ function RedirectBasedOnRole() {
       return <Navigate to="/pharmacist" replace />;
     case "cashier":
       return <Navigate to="/cashier" replace />;
-    case "customer":
-      return <Navigate to="/customer" replace />;
     default:
       return <Navigate to="/login" replace />;
   }
@@ -39,19 +42,20 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          {/* Public pages */}
+          {/* Public */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/access-denied" element={<AccessDenied />} />
 
-          {/* Redirect from root or unknown routes */}
+          {/* Redirect root */}
           <Route path="/" element={<RedirectBasedOnRole />} />
           <Route path="*" element={<RedirectBasedOnRole />} />
 
-          {/* Protected routes */}
+          {/* Protected */}
           <Route
             path="/admin/*"
             element={
-              <RequireAuth>
+              <RequireAuth allowedRoles={["admin"]}>
                 <AdminRoutes />
               </RequireAuth>
             }
@@ -59,7 +63,7 @@ export default function App() {
           <Route
             path="/pharmacist/*"
             element={
-              <RequireAuth>
+              <RequireAuth allowedRoles={["pharmacist"]}>
                 <PharmacistRoutes />
               </RequireAuth>
             }
@@ -67,26 +71,8 @@ export default function App() {
           <Route
             path="/cashier/*"
             element={
-              <RequireAuth>
+              <RequireAuth allowedRoles={["cashier"]}>
                 <CashierRoutes />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/customer/*"
-            element={
-              <RequireAuth>
-                <CustomerRoutes />
-              </RequireAuth>
-            }
-          />
-
-          {/* Add Medicine - Available to all authenticated users */}
-          <Route
-            path="/add-medicine"
-            element={
-              <RequireAuth>
-                <AddMedicine />
               </RequireAuth>
             }
           />

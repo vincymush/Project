@@ -1,36 +1,42 @@
+// src/pages/ExpiredMedicines.jsx
 import React from "react";
 
-export default function ExpiredMedicines() {
-  const expiredList = [
-    { id: 1, name: "Ibuprofen", expiryDate: "2025-07-20" },
-    { id: 2, name: "Vitamin C", expiryDate: "2025-06-15" },
-  ];
+export default function ExpiredMedicines({ medicines }) {
+  const today = new Date();
+
+  // Filter medicines whose expiry date is before today
+  const expiredList = medicines.filter((med) => new Date(med.expiryDate) < today);
 
   return (
-    <div>
-      <h1>Expired Medicines</h1>
-      <table
-        border="1"
-        cellPadding="8"
-        style={{ borderCollapse: "collapse", marginTop: "10px" }}
-      >
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Medicine</th>
-            <th>Expiry Date</th>
-          </tr>
-        </thead>
-        <tbody>
-          {expiredList.map((med) => (
-            <tr key={med.id}>
-              <td>{med.id}</td>
-              <td>{med.name}</td>
-              <td>{med.expiryDate}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-6">Expired Medicines</h1>
+
+      {expiredList.length === 0 ? (
+        <p>No expired medicines found.</p>
+      ) : (
+        <div className="overflow-x-auto bg-white rounded shadow-md">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="px-6 py-3 text-left">Name</th>
+                <th className="px-6 py-3 text-left">Barcode</th>
+                <th className="px-6 py-3 text-left">Price (Ksh)</th>
+                <th className="px-6 py-3 text-left">Expiry Date</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {expiredList.map((med, index) => (
+                <tr key={index} className="bg-red-100">
+                  <td className="px-6 py-4">{med.name}</td>
+                  <td className="px-6 py-4">{med.barcode}</td>
+                  <td className="px-6 py-4">Ksh {med.price}</td>
+                  <td className="px-6 py-4">{med.expiryDate}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
