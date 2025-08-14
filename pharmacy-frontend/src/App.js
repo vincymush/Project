@@ -6,7 +6,7 @@ import Login from "./pages/LoginPage";
 import Register from "./pages/RegisterPage";
 import AdminRoutes from "./pages/AdminRoutes";
 import PharmacistRoutes from "./pages/PharmacistRoutes";
-import CashierRoutes from "./pages/CashierRoutes"; // ✅ create if not exists
+import CashierRoutes from "./pages/CashierRoutes";
 import { usePermissions } from "./hooks/usePermissions";
 import AccessDenied from "./pages/AccessDenied";
 
@@ -14,8 +14,18 @@ function RequireAuth({ children, allowedRoles }) {
   const { user, role, loading: authLoading } = useAuth();
   const { loading: permsLoading } = usePermissions(user?.uid);
 
-  if (authLoading || permsLoading) return <div>Loading...</div>;
+  if (authLoading || permsLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <p className="text-lg font-medium text-gray-600 animate-pulse">
+          Loading...
+        </p>
+      </div>
+    );
+  }
+
   if (!role) return <Navigate to="/login" replace />;
+
   if (allowedRoles && !allowedRoles.includes(role)) {
     return <Navigate to="/access-denied" replace />;
   }
@@ -25,16 +35,18 @@ function RequireAuth({ children, allowedRoles }) {
 
 function RedirectBasedOnRole() {
   const { role } = useAuth();
-  switch (role) {
-    case "admin":
-      return <Navigate to="/admin" replace />;
-    case "pharmacist":
-      return <Navigate to="/pharmacist" replace />;
-    case "cashier":
-      return <Navigate to="/cashier" replace />;
-    default:
-      return <Navigate to="/login" replace />;
+
+  if (!role) {
+    return <Navigate to="/login" replace />;
   }
+
+  const roleRoutes = {
+    admin: "/admin",
+    pharmacist: "/pharmacist",
+    cashier: "/cashier",
+  };
+
+  return <Navigate to={roleRoutes[role] || "/login"} replace />;
 }
 
 export default function App() {
@@ -42,16 +54,16 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          {/* Public */}
+          {/* Public Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/access-denied" element={<AccessDenied />} />
 
-          {/* Redirect root */}
+          {/* Role-based Redirect */}
           <Route path="/" element={<RedirectBasedOnRole />} />
           <Route path="*" element={<RedirectBasedOnRole />} />
 
-          {/* Protected */}
+          {/* Protected Routes */}
           <Route
             path="/admin/*"
             element={

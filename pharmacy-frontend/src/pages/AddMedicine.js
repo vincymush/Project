@@ -1,102 +1,276 @@
 // src/pages/AddMedicine.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { rtdb } from "../firebase/config";
+import { ref, set, onValue, remove, update } from "firebase/database";
 
-export default function AddMedicine({ medicines, setMedicines }) {
-  const [form, setForm] = useState({ name: "", barcode: "", price: "", expiryDate: "" });
+export default function AddMedicine() {
+  const [form, setForm] = useState({
+    name: "",
+    barcode: "",
+    price: "",
+    quantity: "",
+    expiryDate: ""
+  });
+  const [medicines, setMedicines] = useState([]);
   const [editId, setEditId] = useState(null);
+  const [showExpiring, setShowExpiring] = useState(false);
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  // Load medicines in real-time
+  useEffect(() => {
+    const medicinesRef = ref(rtdb, "medicines");
+    const unsubscribe = onValue(medicinesRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        setMedicines(
+          Object.keys(data).map((key) => ({
+            id: key,
+            ...data[key]
+          }))
+        );
+      } else {
+        setMedicines([]);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
-  const handleSubmit = (e) => {
+  // Handle input change
+  const handleChange = (e) => {
+    setForm({
+      ...form,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  // Add or update medicine
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const { name, barcode, price, expiryDate } = form;
-    if (!name || !barcode || !price || !expiryDate) {
-      alert("Please fill in all fields");
+
+    if (!form.name || !form.barcode || !form.price || !form.quantity || !form.expiryDate) {
+      alert("Please fill all fields");
       return;
     }
 
-    if (editId !== null) {
-      setMedicines((prev) =>
-        prev.map((med) => (med.id === editId ? { ...form, id: editId } : med))
-      );
+    if (editId) {
+      await update(ref(rtdb, `medicines/${editId}`), form);
       setEditId(null);
     } else {
-      const newMedicine = { ...form, id: Date.now() }; // Unique ID
-      setMedicines((prev) => [...prev, newMedicine]);
+      const entryKey = Date.now().toString();
+      await set(ref(rtdb, `medicines/${entryKey}`), {
+        ...form,
+        id: entryKey
+      });
     }
 
-    setForm({ name: "", barcode: "", price: "", expiryDate: "" });
+    setForm({ name: "", barcode: "", price: "", quantity: "", expiryDate: "" });
   };
 
-  const handleEdit = (id) => {
-    const med = medicines.find((m) => m.id === id);
-    if (med) {
-      setForm({ name: med.name, barcode: med.barcode, price: med.price, expiryDate: med.expiryDate });
-      setEditId(id);
-    }
-  };
-
-  const handleDelete = (id) => {
+  // Delete medicine
+  const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this medicine?")) {
-      setMedicines((prev) => prev.filter((m) => m.id !== id));
-      if (editId === id) setEditId(null);
+      await remove(ref(rtdb, `medicines/${id}`));
     }
   };
+
+  // Edit medicine
+  const handleEdit = (medicine) => {
+    setForm({
+      name: medicine.name,
+      barcode: medicine.barcode,
+      price: medicine.price,
+      quantity: medicine.quantity,
+      expiryDate: medicine.expiryDate
+    });
+    setEditId(medicine.id);
+  };
+
+  // Check expiring soon
+  const toggleExpiring = () => {
+    setShowExpiring((prev) => !prev);
+  };
+
+  // Filter if showing expiring soon (within 30 days)
+  const displayedMedicines = showExpiring
+    ? medicines.filter((med) => {
+        const today = new Date();
+        const expDate = new Date(med.expiryDate);
+        const diffDays = (expDate - today) / (1000 * 60 * 60 * 24);
+        return diffDays <= 30 && diffDays >= 0;
+      })
+    : medicines;
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Add Medicine</h1>
+    <div style={styles.container}>
+      <h1 style={styles.title}>Manage Medicines</h1>
 
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow-md mb-6 space-y-4">
-        <div>
-          <label className="block font-semibold mb-1">Medicine Name:</label>
-          <input type="text" name="name" value={form.name} onChange={handleChange} className="w-full border rounded px-3 py-2" />
-        </div>
-        <div>
-          <label className="block font-semibold mb-1">Barcode:</label>
-          <input type="text" name="barcode" value={form.barcode} onChange={handleChange} className="w-full border rounded px-3 py-2" />
-        </div>
-        <div>
-          <label className="block font-semibold mb-1">Price (Ksh):</label>
-          <input type="number" name="price" value={form.price} onChange={handleChange} className="w-full border rounded px-3 py-2" />
-        </div>
-        <div>
-          <label className="block font-semibold mb-1">Expiry Date:</label>
-          <input type="date" name="expiryDate" value={form.expiryDate} onChange={handleChange} className="w-full border rounded px-3 py-2" />
-        </div>
-
-        <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">
-          {editId !== null ? "Update Medicine" : "Add Medicine"}
+      {/* Form */}
+      <form onSubmit={handleSubmit} style={styles.form}>
+        <input
+          type="text"
+          name="name"
+          placeholder="Medicine Name"
+          value={form.name}
+          onChange={handleChange}
+          style={styles.input}
+        />
+        <input
+          type="text"
+          name="barcode"
+          placeholder="Barcode"
+          value={form.barcode}
+          onChange={handleChange}
+          style={styles.input}
+        />
+        <input
+          type="number"
+          name="price"
+          placeholder="Price"
+          value={form.price}
+          onChange={handleChange}
+          style={styles.input}
+        />
+        <input
+          type="number"
+          name="quantity"
+          placeholder="Quantity"
+          value={form.quantity}
+          onChange={handleChange}
+          style={styles.input}
+        />
+        <input
+          type="date"
+          name="expiryDate"
+          value={form.expiryDate}
+          onChange={handleChange}
+          style={styles.input}
+        />
+        <button type="submit" style={styles.addButton}>
+          {editId ? "Update Medicine" : "Add Medicine"}
         </button>
       </form>
 
-      <div className="overflow-x-auto bg-white rounded shadow-md">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="px-6 py-3 text-left">Name</th>
-              <th className="px-6 py-3 text-left">Barcode</th>
-              <th className="px-6 py-3 text-left">Price</th>
-              <th className="px-6 py-3 text-left">Expiry Date</th>
-              <th className="px-6 py-3 text-left">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {medicines.map((med) => (
-              <tr key={med.id}>
-                <td className="px-6 py-4">{med.name}</td>
-                <td className="px-6 py-4">{med.barcode}</td>
-                <td className="px-6 py-4">Ksh {med.price}</td>
-                <td className="px-6 py-4">{med.expiryDate}</td>
-                <td className="px-6 py-4 space-x-2">
-                  <button onClick={() => handleEdit(med.id)} className="bg-yellow-500 text-white px-3 py-1 rounded">Edit</button>
-                  <button onClick={() => handleDelete(med.id)} className="bg-red-600 text-white px-3 py-1 rounded">Delete</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {/* Expiry Check Button */}
+      <button onClick={toggleExpiring} style={styles.expiryButton}>
+        {showExpiring ? "Show All Medicines" : "Check Expiring Soon"}
+      </button>
+
+      {/* Medicine List */}
+      <h2 style={styles.subtitle}>Medicine List</h2>
+      <ul style={styles.list}>
+        {displayedMedicines.map((med) => {
+          const isExpiringSoon =
+            (new Date(med.expiryDate) - new Date()) / (1000 * 60 * 60 * 24) <= 30;
+
+          return (
+            <li
+              key={med.id}
+              style={{
+                ...styles.listItem,
+                backgroundColor: isExpiringSoon ? "#fff3cd" : "#f8f9fa"
+              }}
+            >
+              <span>
+                <strong>{med.name}</strong> — {med.barcode} — ${med.price} — Qty:{" "}
+                {med.quantity} — Exp: {med.expiryDate}
+              </span>
+              <div>
+                <button
+                  style={styles.editButton}
+                  onClick={() => handleEdit(med)}
+                >
+                  Edit
+                </button>
+                <button
+                  style={styles.deleteButton}
+                  onClick={() => handleDelete(med.id)}
+                >
+                  Delete
+                </button>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }
+
+// Inline styles
+const styles = {
+  container: {
+    padding: "20px",
+    maxWidth: "800px",
+    margin: "0 auto",
+    fontFamily: "Arial, sans-serif"
+  },
+  title: {
+    textAlign: "center",
+    color: "#2c3e50",
+    marginBottom: "20px"
+  },
+  form: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "10px",
+    marginBottom: "20px"
+  },
+  input: {
+    padding: "10px",
+    fontSize: "14px",
+    borderRadius: "5px",
+    border: "1px solid #ccc"
+  },
+  addButton: {
+    gridColumn: "span 2",
+    padding: "10px",
+    backgroundColor: "#27ae60",
+    color: "white",
+    fontWeight: "bold",
+    border: "none",
+    borderRadius: "5px",
+    cursor: "pointer"
+  },
+  expiryButton: {
+    padding: "10px",
+    backgroundColor: "#e67e22",
+    color: "white",
+    fontWeight: "bold",
+    border: "none",
+    borderRadius: "5px",
+    cursor: "pointer",
+    marginBottom: "20px"
+  },
+  subtitle: {
+    marginBottom: "10px",
+    color: "#34495e"
+  },
+  list: {
+    listStyle: "none",
+    padding: 0
+  },
+  listItem: {
+    marginBottom: "10px",
+    padding: "10px",
+    borderRadius: "5px",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center"
+  },
+  editButton: {
+    padding: "5px 10px",
+    backgroundColor: "#2980b9",
+    color: "white",
+    border: "none",
+    borderRadius: "4px",
+    cursor: "pointer",
+    marginRight: "5px"
+  },
+  deleteButton: {
+    padding: "5px 10px",
+    backgroundColor: "#c0392b",
+    color: "white",
+    border: "none",
+    borderRadius: "4px",
+    cursor: "pointer"
+  }
+};
