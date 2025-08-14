@@ -1,3 +1,4 @@
+// src/pages/UserManagement.jsx
 import React, { useState, useEffect } from "react";
 import { db } from "../firebase/config";
 import {
@@ -5,33 +6,14 @@ import {
   setDoc,
   deleteDoc,
   doc,
-  updateDoc,
   onSnapshot,
-  getDoc
 } from "firebase/firestore";
 
 export default function UserManagement() {
   const [users, setUsers] = useState([]);
-  const [roles, setRoles] = useState([]);
   const [newUserUID, setNewUserUID] = useState("");
   const [newUserName, setNewUserName] = useState("");
-  const [newUserRole, setNewUserRole] = useState("");
-
-  // Fetch roles from roles_permissions/config
-  useEffect(() => {
-    const fetchRoles = async () => {
-      const docRef = doc(db, "roles_permissions", "config");
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        setRoles(data.roles || []);
-        if (data.roles.length > 0) {
-          setNewUserRole(data.roles[0]); // Default to first role
-        }
-      }
-    };
-    fetchRoles();
-  }, []);
+  const [search, setSearch] = useState("");
 
   // Live listen to users collection
   useEffect(() => {
@@ -41,15 +23,14 @@ export default function UserManagement() {
     return () => unsub();
   }, []);
 
-  // Add a new user using an existing UID
+  // Add a new user
   const addUser = async () => {
-    if (!newUserUID.trim() || !newUserName.trim() || !newUserRole) {
-      return alert("Please enter UID, name, and role");
+    if (!newUserUID.trim() || !newUserName.trim()) {
+      return alert("Please enter UID and name");
     }
     try {
       await setDoc(doc(db, "users", newUserUID.trim()), {
         name: newUserName.trim(),
-        role: newUserRole
       });
       setNewUserUID("");
       setNewUserName("");
@@ -67,21 +48,19 @@ export default function UserManagement() {
     }
   };
 
-  // Update a user's role
-  const updateUserRole = async (id, newRole) => {
-    try {
-      await updateDoc(doc(db, "users", id), { role: newRole });
-    } catch (err) {
-      console.error("Error updating role:", err);
-    }
-  };
+  // Filter users based on search input
+  const filteredUsers = users.filter(
+    (u) =>
+      u.name?.toLowerCase().includes(search.toLowerCase()) ||
+      u.id?.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
-    <div>
+    <div className="p-6">
       <h2 className="text-2xl font-bold mb-4">User Management</h2>
 
-      {/* Add user form */}
-      <div className="mb-6 flex gap-2">
+      {/* Add User Form */}
+      <div className="mb-4 flex flex-wrap gap-2 items-center">
         <input
           type="text"
           placeholder="Firebase UID"
@@ -96,72 +75,59 @@ export default function UserManagement() {
           onChange={(e) => setNewUserName(e.target.value)}
           className="border px-3 py-2 rounded"
         />
-        <select
-          value={newUserRole}
-          onChange={(e) => setNewUserRole(e.target.value)}
-          className="border px-3 py-2 rounded"
-        >
-          {roles.map((role) => (
-            <option key={role} value={role}>
-              {role}
-            </option>
-          ))}
-        </select>
         <button
           onClick={addUser}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
         >
           Add User
         </button>
       </div>
 
-      {/* Users table */}
-      <table className="w-full border-collapse border">
-        <thead>
-          <tr>
-            <th className="border px-4 py-2">UID</th>
-            <th className="border px-4 py-2">Name</th>
-            <th className="border px-4 py-2">Role</th>
-            <th className="border px-4 py-2">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map(({ id, name, role }) => (
-            <tr key={id}>
-              <td className="border px-4 py-2">{id}</td>
-              <td className="border px-4 py-2">{name}</td>
-              <td className="border px-4 py-2">
-                <select
-                  value={role}
-                  onChange={(e) => updateUserRole(id, e.target.value)}
-                  className="border px-2 py-1 rounded"
-                >
-                  {roles.map((r) => (
-                    <option key={r} value={r}>
-                      {r}
-                    </option>
-                  ))}
-                </select>
-              </td>
-              <td className="border px-4 py-2 text-center">
-                <button
-                  onClick={() => deleteUser(id)}
-                  className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
-                >
-                  Delete
-                </button>
-              </td>
+      {/* Search Users */}
+      <input
+        type="text"
+        placeholder="Search users..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        className="border px-3 py-2 rounded mb-4 w-full max-w-sm"
+      />
+
+      {/* Users Table */}
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse border text-left">
+          <thead>
+            <tr className="bg-gray-200">
+              <th className="border px-4 py-2">UID</th>
+              <th className="border px-4 py-2">Name</th>
+              <th className="border px-4 py-2 text-center">Actions</th>
             </tr>
-          ))}
-          {users.length === 0 && (
-            <tr>
-              <td colSpan="4" className="text-center py-4">
-                No users found
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {filteredUsers.length > 0 ? (
+              filteredUsers.map(({ id, name }) => (
+                <tr key={id} className="hover:bg-gray-50">
+                  <td className="border px-4 py-2">{id}</td>
+                  <td className="border px-4 py-2">{name}</td>
+                  <td className="border px-4 py-2 text-center">
+                    <button
+                      onClick={() => deleteUser(id)}
+                      className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition"
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="3" className="text-center py-4">
+                  No users found
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

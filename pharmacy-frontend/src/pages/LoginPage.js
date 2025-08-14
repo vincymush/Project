@@ -19,7 +19,6 @@ export default function LoginPage() {
 
     try {
       const userCred = await signInWithEmailAndPassword(auth, email, password);
-
       const userDoc = await getDoc(doc(db, "users", userCred.user.uid));
       if (!userDoc.exists()) {
         alert("User record not found in Firestore.");
@@ -31,20 +30,13 @@ export default function LoginPage() {
       setUser(userCred.user);
       setRole(role);
 
-      if (role) {
-        navigate(`/${role}`);
-      } else {
-        alert("No role assigned to this account.");
-      }
+      if (role) navigate(`/${role}`);
+      else alert("No role assigned to this account.");
     } catch (error) {
       console.error("Login error:", error);
-      if (error.code === "auth/user-not-found") {
-        alert("No account found with this email.");
-      } else if (error.code === "auth/wrong-password") {
-        alert("Incorrect password.");
-      } else {
-        alert(error.message);
-      }
+      if (error.code === "auth/user-not-found") alert("No account found with this email.");
+      else if (error.code === "auth/wrong-password") alert("Incorrect password.");
+      else alert(error.message);
     } finally {
       setLoading(false);
     }
@@ -53,8 +45,10 @@ export default function LoginPage() {
   return (
     <div style={styles.container}>
       <div style={styles.card}>
-        <h2 style={styles.title}>🔐 Login</h2>
-        <form onSubmit={handleLogin}>
+        {/* Stylish Title */}
+        <h1 style={styles.title}>Pharmacy Management System Web Application</h1>
+
+        <form onSubmit={handleLogin} style={styles.form}>
           <input
             type="email"
             placeholder="📧 Email"
@@ -90,38 +84,43 @@ const styles = {
     fontFamily: "'Segoe UI', sans-serif",
   },
   card: {
-    background: "rgba(255, 255, 255, 0.9)",
-    padding: "30px",
-    borderRadius: "15px",
-    boxShadow: "0 8px 25px rgba(0, 0, 0, 0.2)",
+    background: "rgba(255, 255, 255, 0.95)",
+    padding: "40px",
+    borderRadius: "20px",
+    boxShadow: "0 12px 30px rgba(0,0,0,0.25)",
     width: "100%",
-    maxWidth: "400px",
-    backdropFilter: "blur(8px)",
+    maxWidth: "450px",
+    textAlign: "center",
   },
   title: {
-    textAlign: "center",
-    marginBottom: "20px",
+    fontSize: "1.8rem",
+    fontWeight: "700",
     color: "#333",
+    marginBottom: "25px",
+    lineHeight: "1.2",
+  },
+  form: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "15px",
   },
   input: {
     width: "100%",
-    padding: "12px",
-    marginBottom: "15px",
+    padding: "14px 16px",
     border: "1px solid #ccc",
-    borderRadius: "8px",
+    borderRadius: "10px",
+    fontSize: "15px",
     outline: "none",
-    fontSize: "14px",
     transition: "0.3s",
   },
   button: {
-    width: "100%",
-    padding: "12px",
+    padding: "14px",
     background: "linear-gradient(90deg, #6a11cb, #2575fc)",
     color: "#fff",
     fontWeight: "bold",
     fontSize: "16px",
     border: "none",
-    borderRadius: "8px",
+    borderRadius: "12px",
     cursor: "pointer",
     transition: "0.3s",
   },
